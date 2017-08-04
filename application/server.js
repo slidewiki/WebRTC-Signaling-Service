@@ -1,72 +1,70 @@
-/*
-This is a demo application implementing some interfaces as described in https://docs.google.com/document/d/1337m6i7Y0GPULKLsKpyHR4NRzRwhoxJnAZNnDFCigkc/edit#
-This application demonstrates a service which returns previously inserted data from a MongoDB database.
- */
-
 'use strict';
 
-//This is our webserver framework (instead of express)
-const hapi = require('hapi'),
-  co = require('./common');
+let os = require('os');
 
-//Initiate the webserver with standard or given port
-const server = new hapi.Server({ connections: {routes: {validate: { options: {convert : false}}}}});
+let port = (process.env.APPLICATION_PORT) ? process.env.APPLICATION_PORT : 3000;
 
-let port = (!co.isEmpty(process.env.APPLICATION_PORT)) ? process.env.APPLICATION_PORT : 3000;
-server.connection({
-  port: port
-});
-let host = (!co.isEmpty(process.env.VIRTUAL_HOST)) ? process.env.VIRTUAL_HOST : server.info.host;
+let fileServer = new(require('node-static').Server)();
+let app = require('http').createServer((req, res) => {
+  fileServer.serve(req, res);
+}).listen(port);
 
-//Export the webserver to be able to use server.log()
-module.exports = server;
+let io = require('socket.io')(app);
 
-//Plugin for sweet server console output
-let plugins = [
-  require('inert'),
-  require('vision'), {
-    register: require('good'),
-    options: {
-      ops: {
-        interval: 1000
-      },
-      reporters: {
-        console: [{
-          module: 'good-squeeze',
-          name: 'Squeeze',
-          args: [{
-            log: '*',
-            response: '*',
-            request: '*'
-          }]
-        }, {
-          module: 'good-console'
-        }, 'stdout']
-      }
-    }
-  }, { //Plugin for swagger API documentation
-    register: require('hapi-swagger'),
-    options: {
-      host: host,
-      info: {
-        title: 'Example API',
-        description: 'Powered by node, hapi, joi, hapi-swaggered, hapi-swaggered-ui and swagger-ui',
-        version: '0.1.0'
-      }
-    }
+io.on('connection', (socket) => {
+
+  function log() {
+    let array = ['Message from server:'];
+    array.push.apply(array, arguments);
+    socket.emit('log', array);
   }
-];
 
-//Register plugins and start webserver
-server.register(plugins, (err) => {
-  if (err) {
-    console.error(err);
-    global.process.exit();
-  } else {
-    server.start(() => {
-      server.log('info', 'Server started at ' + server.info.uri);
-      //Register routes
-      require('./routes.js')(server);
-    });
+  function RoomParticipants(room) {
+    return io.sockets.adapter.rooms[room] ? io.sockets.adapter.rooms[room].length : 0;
   }
+
+  socket.on('message', (data, room) => {
+    log('Client said: ', data);
+    // for a real app, would be room-only (not broadcast)
+
+    io.sockets.in(room).emit('message', data);
+  });
+
+  socket.on('ID of presenter', (room, presenterID) => {
+    io.sockets.in(room).emit('ID of presenter', presenterID);
+  });
+
+  socket.on('create or join', (room) => {
+    log('Received request to create or join room ' + room);
+
+    console.log('Number of all currently connected sockets: ', Object.keys(io.sockets.sockets).length);
+
+    log('Room ' + room + ' now has ' + RoomParticipants(room) + ' client(s)');
+
+    if (RoomParticipants(room) === 0) {
+      log('Client ID ' + socket.id + ' created room ' + room);
+      socket.join(room).emit('created', room, socket.id);
+      console.log('Number participants for room ', room, ': ', RoomParticipants(room));
+    } else if (RoomParticipants(room) < 10) {
+      log('Client ID ' + socket.id + ' joined room ' + room);
+      io.sockets.in(room).emit('join', room, socket.id);
+      socket.join(room).emit('joined', room, socket.id);
+      io.sockets.in(room).emit('ready');
+      console.log('Number participants for room ', room, ': ', RoomParticipants(room));
+    } else { // if room is full
+      socket.emit('full', room);
+    }
+  });
+
+  socket.on('ipaddr', () => {
+    let ifaces = os.networkInterfaces();
+    for (let dev in ifaces) {
+      ifaces[dev].forEach((details) => {
+        if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
+          socket.emit('ipaddr', details.address);
+        }
+      });
+    }
+  });
+
 });
