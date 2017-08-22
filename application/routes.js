@@ -13,7 +13,7 @@ module.exports = function(server) {
     config: {
       validate: {
         params: {
-          deckID: Joi.string().alphanum().lowercase()
+          deckID: Joi.string().lowercase().trim()
         },
       },
       tags: ['api'],
