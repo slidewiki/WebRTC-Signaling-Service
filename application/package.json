@@ -1,12 +1,12 @@
 {
-  "name": "WebRTC-STUN-Service",
+  "name": "WebRTC-Signaling-Service",
   "version": "0.1.0",
-  "description": "WebRTC STUN Service for SlideWik",
+  "description": "WebRTC Signaling Service for SlideWik",
   "repository": {
     "type": "git",
-    "url": "https://github.com/slidewiki/WebRTC-STUN-Service"
+    "url": "https://github.com/slidewiki/WebRTC-Signaling-Service"
   },
-  "bugs": "https://github.com/slidewiki/WebRTC-STUN-Service/issues",
+  "bugs": "https://github.com/slidewiki/WebRTC-Signaling-Service/issues",
   "author": "Roy Meissner (https://rmeissn.github.io/)",
   "license": "MPL-2.0",
   "main": "server.js",
