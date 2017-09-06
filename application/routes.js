@@ -66,13 +66,11 @@ io.on('connection', (socket) => {
         rooms[deckID].push(room);
       }
       socket.join(room).emit('created', room, socket.id);
-    } else if (RoomParticipants(room) < 100) {
+    } else {
       log('Client ID ' + socket.id + ' joined room ' + room);
       io.sockets.in(room).emit('join', room, socket.id);
       socket.join(room).emit('joined', room, socket.id);
       io.sockets.in(room).emit('ready');
-    } else { // if room is full
-      socket.emit('full', room);
     }
   });
 
