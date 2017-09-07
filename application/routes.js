@@ -52,6 +52,10 @@ io.on('connection', (socket) => {
     io.sockets.in(room).emit('ID of presenter', presenterID);
   });
 
+  socket.on('room is full', (room, peerID) => {
+    io.sockets.in(room).emit('room is full', peerID);
+  });
+
   socket.on('create or join', (room, deckID) => {
     log('Received request to create or join room ' + room);
     console.log('Received request to create or join room ', room);
