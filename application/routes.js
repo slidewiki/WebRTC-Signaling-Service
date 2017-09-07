@@ -37,23 +37,26 @@ io.on('connection', (socket) => {
     let array = ['Message from server:'];
     array.push.apply(array, arguments);
     socket.emit('log', array);
+    // console.log('log', array);
   }
 
   function RoomParticipants(room) {
     return io.sockets.adapter.rooms[room] ? io.sockets.adapter.rooms[room].length : 0;
   }
 
-  socket.on('message', (data, room) => {
+  socket.on('message', (data) => {
     log('Client said: ', data);
-    io.sockets.in(room).emit('message', data);
+    if (data.cmd === 'peer wants to connect')
+        socket.emit('message', data);
+    io.to(data.receiver).emit('message', data);
   });
 
-  socket.on('ID of presenter', (room, presenterID) => {
-    io.sockets.in(room).emit('ID of presenter', presenterID);
+  socket.on('ID of presenter', (presenterID, peerID) => {
+    io.to(peerID).emit('ID of presenter', presenterID);
   });
 
-  socket.on('room is full', (room, peerID) => {
-    io.sockets.in(room).emit('room is full', peerID);
+  socket.on('room is full', (peerID) => {
+    io.to(peerID).emit('room is full');
   });
 
   socket.on('create or join', (room, deckID) => {
@@ -74,7 +77,6 @@ io.on('connection', (socket) => {
       log('Client ID ' + socket.id + ' joined room ' + room);
       io.sockets.in(room).emit('join', room, socket.id);
       socket.join(room).emit('joined', room, socket.id);
-      io.sockets.in(room).emit('ready');
     }
   });
 
