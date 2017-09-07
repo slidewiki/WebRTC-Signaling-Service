@@ -47,7 +47,7 @@ io.on('connection', (socket) => {
   socket.on('message', (data) => {
     log('Client said: ', data);
     if (data.cmd === 'peer wants to connect')
-        socket.emit('message', data);
+      socket.emit('message', data);
     io.to(data.receiver).emit('message', data);
   });
 
