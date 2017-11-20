@@ -2,8 +2,7 @@
 
 const Joi = require('joi'),
   server = require('./server'),
-  os = require('os'),
-  boom = require('boom');
+  os = require('os');
 
 module.exports = function(server) {
   server.route({
