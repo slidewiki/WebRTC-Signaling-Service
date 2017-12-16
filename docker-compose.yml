@@ -1,5 +1,5 @@
 template:
-  image: slidewiki/webrtcsignalingservice
+  image: slidewiki/webrtcsignalingservice:latest-dev
   restart: on-failure:5
   expose:
     - "80"
