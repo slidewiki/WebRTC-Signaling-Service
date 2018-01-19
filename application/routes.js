@@ -42,7 +42,6 @@ module.exports = function(server) {
 };
 
 let rooms = {};//{deckid: [{name: roomName, openingTime: UTC}, ...], ...}
-//{deckid: [roomName], ...}
 
 function getRoomsForPresentaton(request, reply) {//NOTE still here for backward compatibility
   let id = request.params.deckID;
