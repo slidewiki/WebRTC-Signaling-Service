@@ -15,15 +15,42 @@ module.exports = function(server) {
           deckID: Joi.string().lowercase().trim()
         },
       },
+      plugins: {
+        'hapi-swagger': {
+          deprecated: true,
+        }
+      },
       tags: ['api'],
       description: 'Get rooms for a specific deck'
     }
   });
+
+  server.route({
+    method: 'GET',
+    path: '/v2/rooms/{deckID}',
+    handler: getRoomsForDeckWithTime,
+    config: {
+      validate: {
+        params: {
+          deckID: Joi.string().lowercase().trim()
+        },
+      },
+      tags: ['api'],
+      description: 'Get rooms for a specific deck with their opening time'
+    }
+  });
 };
 
-let rooms = {};
+let rooms = {};//{deckid: [{name: roomName, openingTime: UTC}, ...], ...}
 
-function getRoomsForPresentaton(request, reply) {
+function getRoomsForPresentaton(request, reply) {//NOTE still here for backward compatibility
+  let id = request.params.deckID;
+  let response = rooms[id] ? rooms[id] : [];
+  response = response.map((room) => room.roomName);
+  reply(response);
+}
+
+function getRoomsForDeckWithTime(request, reply) {
   let id = request.params.deckID;
   let response = rooms[id] ? rooms[id] : [];
   reply(response);
@@ -65,11 +92,12 @@ io.on('connection', (socket) => {
 
     if (RoomParticipants(room) === 0) {
       log('Client ID ' + socket.id + ' created room ' + room);
+      let now = new Date().getTime();
       if(rooms[deckID])
-        rooms[deckID].push(room);
+        rooms[deckID].push({'roomName': room, 'openingTime': now});
       else{
         rooms[deckID] = [];
-        rooms[deckID].push(room);
+        rooms[deckID].push({'roomName': room, 'openingTime': now});
       }
       socket.join(room).emit('created', room, socket.id);
     } else {
@@ -84,8 +112,8 @@ io.on('connection', (socket) => {
     Object.keys(availableRooms).forEach((room) => {
       if(room !== socket.id && Object.keys(availableRooms[room].sockets).includes(socket.id) && availableRooms[room].length === 1){
         Object.keys(rooms).forEach((deckID) => {
-          if(rooms[deckID].includes(room)){
-            rooms[deckID] = rooms[deckID].filter((x) => x !== room);//remove from array
+          if(rooms[deckID].some((room2) => room2.roomName === room)) {
+            rooms[deckID] = rooms[deckID].filter((x) => x.roomName !== room);//remove from array
             if(rooms[deckID].length === 0)
               delete rooms[deckID];
           }
