@@ -2,7 +2,11 @@
 
 const Joi = require('joi'),
   server = require('./server'),
-  os = require('os');
+  os = require('os'),
+  twitter = require('twitter'),
+  _ = require('lodash');
+
+const twitterclient = new twitter(require('./config.json'));
 
 module.exports = function(server) {
   server.route({
@@ -107,12 +111,31 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('follow hashtag', (hashtags, room, deckID) => {//hashtags = '', e.g. ''#SWORG #D6R1'
+    let stream = twitterclient.stream('statuses/filter', {track: hashtags});
+    rooms[deckID].find((x) => x.roomName === room).twitterStream = stream;
+    stream.on('data', (event) => {
+      let isTweet = _.conformsTo(event,{
+        contributors: (x) => {return _.isObject(x) || _.isEmpty(x);},
+        id_str: _.isString,
+        text: _.isString,
+      });
+      if(isTweet)
+        socket.emit('new tweets', event);
+    });
+
+    stream.on('error', (error) => {
+      console.log(error);
+    });
+  });
+
   socket.on('disconnecting', () => {//NOTE This will have bad performance for many peers/rooms/deckIDs
     let availableRooms = io.sockets.adapter.rooms;
     Object.keys(availableRooms).forEach((room) => {
       if(room !== socket.id && Object.keys(availableRooms[room].sockets).includes(socket.id) && availableRooms[room].length === 1){
         Object.keys(rooms).forEach((deckID) => {
           if(rooms[deckID].some((room2) => room2.roomName === room)) {
+            rooms[deckID].find((x) => x.roomName === room).twitterStream.destroy();
             rooms[deckID] = rooms[deckID].filter((x) => x.roomName !== room);//remove from array
             if(rooms[deckID].length === 0)
               delete rooms[deckID];
