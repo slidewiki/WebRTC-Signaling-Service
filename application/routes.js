@@ -137,7 +137,7 @@ io.on('connection', (socket) => {
           if(rooms[deckID].some((room2) => room2.roomName === room)) {
             try {
               rooms[deckID].find((x) => x.roomName === room).twitterStream.destroy();//close twitter stream
-            } catch (e) {return;}
+            } catch (e) {}//eslint-disable-line
             rooms[deckID] = rooms[deckID].filter((x) => x.roomName !== room);//remove from array
             if(rooms[deckID].length === 0)
               delete rooms[deckID];
