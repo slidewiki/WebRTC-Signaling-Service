@@ -135,7 +135,9 @@ io.on('connection', (socket) => {
       if(room !== socket.id && Object.keys(availableRooms[room].sockets).includes(socket.id) && availableRooms[room].length === 1){
         Object.keys(rooms).forEach((deckID) => {
           if(rooms[deckID].some((room2) => room2.roomName === room)) {
-            rooms[deckID].find((x) => x.roomName === room).twitterStream.destroy();//close twitter stream
+            try {
+              rooms[deckID].find((x) => x.roomName === room).twitterStream.destroy();//close twitter stream
+            } catch (e) {return;}
             rooms[deckID] = rooms[deckID].filter((x) => x.roomName !== room);//remove from array
             if(rooms[deckID].length === 0)
               delete rooms[deckID];
