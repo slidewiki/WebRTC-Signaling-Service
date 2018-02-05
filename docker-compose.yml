@@ -10,3 +10,5 @@ template:
     - VIRTUAL_HOST=signalingservice.experimental.slidewiki.org
     - LETSENCRYPT_HOST=signalingservice.experimental.slidewiki.org
     - LETSENCRYPT_EMAIL=meissner@informatik.uni-leipzig.de
+  volumes:
+    - /data/slidewiki-deployment/docker-compose/twitterConfig_experimental.json:/nodeApp/config.json:ro

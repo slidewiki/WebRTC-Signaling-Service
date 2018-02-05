@@ -2,7 +2,11 @@
 
 const Joi = require('joi'),
   server = require('./server'),
-  os = require('os');
+  os = require('os'),
+  twitter = require('twitter'),
+  _ = require('lodash');
+
+const twitterclient = new twitter(require('./config.json'));
 
 module.exports = function(server) {
   server.route({
@@ -41,7 +45,7 @@ module.exports = function(server) {
   });
 };
 
-let rooms = {};//{deckid: [{name: roomName, openingTime: UTC}, ...], ...}
+let rooms = {};//{deckid: [{roomName: string, openingTime: UTC, twitterStream: stream}, ...], ...}
 
 function getRoomsForPresentaton(request, reply) {//NOTE still here for backward compatibility
   let id = request.params.deckID;
@@ -53,7 +57,7 @@ function getRoomsForPresentaton(request, reply) {//NOTE still here for backward 
 function getRoomsForDeckWithTime(request, reply) {
   let id = request.params.deckID;
   let response = rooms[id] ? rooms[id] : [];
-  reply(response);
+  reply(response.map((el) => {return {'roomName': el.roomName, 'openingTime': el.openingTime};}));
 }
 
 let io = require('socket.io')(server.listener);
@@ -87,8 +91,8 @@ io.on('connection', (socket) => {
 
   socket.on('create or join', (room, deckID) => {
     log('Received request to create or join room ' + room);
-    console.log('Received request to create or join room ', room);
-    console.log('Number of all currently connected sockets: ', Object.keys(io.sockets.sockets).length);
+    //console.log('Received request to create or join room ', room);
+    //console.log('Number of all currently connected sockets: ', Object.keys(io.sockets.sockets).length);
 
     if (RoomParticipants(room) === 0) {
       log('Client ID ' + socket.id + ' created room ' + room);
@@ -107,12 +111,31 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('follow hashtag', (hashtags, room, deckID) => {//hashtags = '', e.g. ''#SWORG #D6R1'
+    let stream = twitterclient.stream('statuses/filter', {track: hashtags});
+    rooms[deckID].find((x) => x.roomName === room).twitterStream = stream;
+    stream.on('data', (event) => {
+      let isTweet = _.conformsTo(event,{
+        contributors: (x) => {return _.isObject(x) || _.isEmpty(x);},
+        id_str: _.isString,
+        text: _.isString,
+      });
+      if(isTweet)
+        socket.emit('new tweets', event);
+    });
+
+    stream.on('error', (error) => {
+      console.log(error);
+    });
+  });
+
   socket.on('disconnecting', () => {//NOTE This will have bad performance for many peers/rooms/deckIDs
     let availableRooms = io.sockets.adapter.rooms;
     Object.keys(availableRooms).forEach((room) => {
       if(room !== socket.id && Object.keys(availableRooms[room].sockets).includes(socket.id) && availableRooms[room].length === 1){
         Object.keys(rooms).forEach((deckID) => {
           if(rooms[deckID].some((room2) => room2.roomName === room)) {
+            rooms[deckID].find((x) => x.roomName === room).twitterStream.destroy();//close twitter stream
             rooms[deckID] = rooms[deckID].filter((x) => x.roomName !== room);//remove from array
             if(rooms[deckID].length === 0)
               delete rooms[deckID];

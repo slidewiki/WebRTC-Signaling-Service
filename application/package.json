@@ -31,8 +31,10 @@
     "hapi-swagger": "^7.6.0",
     "inert": "^4.2.0",
     "joi": "^10.6.0",
+    "lodash": "^4.17.4",
     "node-static": "0.7.9",
     "socket.io": "2.0.3",
+    "twitter": "^1.7.1",
     "vision": "^4.1.0"
   },
   "engines": {
