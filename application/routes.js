@@ -4,7 +4,8 @@ const Joi = require('joi'),
   server = require('./server'),
   os = require('os'),
   twitter = require('twitter'),
-  _ = require('lodash');
+  _ = require('lodash'),
+  crypto = require('crypto');
 
 const twitterclient = new twitter(require('./config.json'));
 
@@ -43,6 +44,16 @@ module.exports = function(server) {
       description: 'Get rooms for a specific deck with their opening time'
     }
   });
+
+  server.route({
+    method: 'GET',
+    path: '/token',
+    handler: getNewRevealMultiplexToken,
+    config: {
+      tags: ['api'],
+      description: 'Get a new token pair for the reveal multiplex plugin'
+    }
+  });
 };
 
 let rooms = {};//{deckid: [{roomName: string, openingTime: UTC, twitterStream: stream}, ...], ...}
@@ -58,6 +69,20 @@ function getRoomsForDeckWithTime(request, reply) {
   let id = request.params.deckID;
   let response = rooms[id] ? rooms[id] : [];
   reply(response.map((el) => {return {'roomName': el.roomName, 'openingTime': el.openingTime};}));
+}
+
+function getNewRevealMultiplexToken(request, reply) {
+  let ts = new Date().getTime();
+  let rand = Math.floor(Math.random()*9999999);
+  let secret = ts.toString() + rand.toString();
+  let socketID = createHash(secret);
+  console.log({secret: secret, socketId: socketID});
+  reply({secret: secret, socketId: socketID});
+}
+
+function createHash(secret) {
+  let cipher = crypto.createCipher('blowfish', secret);
+  return(cipher.final('hex'));
 }
 
 let io = require('socket.io')(server.listener);
@@ -155,6 +180,14 @@ io.on('connection', (socket) => {
           socket.emit('ipaddr', details.address);
         }
       });
+    }
+  });
+
+  socket.on('multiplex-statechanged', (data) => {
+    if (typeof data.secret == 'undefined' || data.secret == null || data.secret === '') return;
+    if (createHash(data.secret) === data.socketId) {
+      data.secret = null;
+      socket.broadcast.emit(data.socketId, data);
     }
   });
 
