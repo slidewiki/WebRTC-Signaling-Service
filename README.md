@@ -6,7 +6,7 @@
 [![Webserver](https://img.shields.io/badge/Socket%20Framework-Socket.io%202.0-blue.svg)](http://hapijs.com/)
 
 
-Simple STUN Service for the WebRTC parts of slidewiki-platform.
+Simple STUN service for the WebRTC parts of slidewiki-platform and also for the reveal multiplexing plugin.
 
 ### Install NodeJS ###
 ---
