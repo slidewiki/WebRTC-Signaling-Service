@@ -5,10 +5,13 @@ const Joi = require('joi'),
   os = require('os'),
   twitter = require('twitter'),
   _ = require('lodash'),
-  crypto = require('crypto'),
-  URL = require('url');
+  crypto = require('crypto');
 
 const twitterclient = new twitter(require('./config.json'));
+
+let CORSHost = process.env.VIRTUAL_HOST.split('.');
+CORSHost = CORSHost[CORSHost.length - 2] + '.' + CORSHost[CORSHost.length-1];
+console.log('Using ' + CORSHost + ' for CORS headers');
 
 module.exports = function(server) {
   server.route({
@@ -51,7 +54,7 @@ module.exports = function(server) {
     path: '/token',
     handler: getNewRevealMultiplexToken,
     config: {
-      cors: {origin: ['http://localhost*', URL.parse(process.env.VIRTUAL_HOST).hostname]},
+      cors: {origin: [/*'http://localhost*',*/ '*' + CORSHost]},
       tags: ['api'],
       description: 'Get a new token pair for the reveal multiplex plugin'
     }
