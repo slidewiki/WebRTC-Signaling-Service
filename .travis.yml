@@ -19,7 +19,7 @@ script:
 - npm run lint
 after_success:
 - cd ..
-- openssl aes-256-cbc -K $encrypted_c07af4b335b9_key -iv $encrypted_c07af4b335b9_iv -in deployment_keys.tar.enc -out deployment_keys.tar -d
+- openssl aes-256-cbc -K $encrypted_f48a2cbd8a1b_key -iv $encrypted_f48a2cbd8a1b_iv -in deployment_keys.tar.enc -out deployment_keys.tar -d
 - if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" = "false" ] ; then ./travis_scripts/dockerhub.sh ; fi
 - if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" = "false" ] ; then ./travis_scripts/deploy.sh ; fi
 - cd application
